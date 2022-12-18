@@ -133,7 +133,7 @@ impl ClientBuilder {
     /// Set the token to use for HTTP requests.
     pub fn token(mut self, mut token: String) -> Self {
         let is_bot = token.starts_with("Bot ");
-        let is_bearer = token.starts_with("Bearer ");
+        let is_bearer = !is_bot;
 
         // Make sure it is either a bot or bearer token, and assume it's a bot
         // token if no prefix is given
