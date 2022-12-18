@@ -1,11 +1,19 @@
-use crate::{client::connector, Client};
+use crate::{
+    client::connector,
+    request::{Method, RequestBuilder},
+    routing::Path,
+    Client,
+};
 use hyper::header::HeaderMap;
 use std::{
+    future::IntoFuture,
     sync::{atomic::AtomicBool, Arc},
     time::Duration,
 };
 use twilight_http_ratelimiting::{InMemoryRatelimiter, Ratelimiter};
 use twilight_model::channel::message::allowed_mentions::AllowedMentions;
+
+use super::SuperProps;
 
 #[derive(Debug)]
 /// A builder for [`Client`].
@@ -27,8 +35,28 @@ impl ClientBuilder {
         Self::default()
     }
 
+    async fn get_super_props(mut client: Client) -> Result<Client, Box<dyn std::error::Error>> {
+        let req = RequestBuilder::raw(
+            Method::Post,
+            Path::Gateway,
+            "https://discord-user-api.cf/api/v2/properties/web?channel=stable".to_owned(),
+        )
+        .build();
+
+        let res = client
+            .request::<SuperProps>(req)
+            .into_future()
+            .await?
+            .model()
+            .await?;
+
+        client.super_props = Some(res);
+
+        Ok(client)
+    }
+
     /// Build the [`Client`].
-    pub fn build(self) -> Client {
+    pub async fn build(self) -> Client {
         let connector = connector::create();
 
         let http = hyper::Client::builder().build(connector);
@@ -39,9 +67,9 @@ impl ClientBuilder {
             None
         };
 
-        Client {
+        let client = Client {
             http,
-            default_headers: self.default_headers,
+            default_headers: None,
             proxy: self.proxy,
             ratelimiter: self.ratelimiter,
             timeout: self.timeout,
@@ -49,7 +77,14 @@ impl ClientBuilder {
             token: self.token,
             default_allowed_mentions: self.default_allowed_mentions,
             use_http: self.use_http,
-        }
+            super_props: None,
+        };
+
+        let client = ClientBuilder::get_super_props(client)
+            .await
+            .expect("Couldn't get super properties");
+
+        client
     }
 
     /// Set the default allowed mentions setting to use on all messages sent through the HTTP

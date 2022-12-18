@@ -84,9 +84,13 @@ use crate::{
 };
 use hyper::{
     client::Client as HyperClient,
-    header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_LENGTH, CONTENT_TYPE, USER_AGENT},
+    header::{
+        HeaderMap, HeaderValue, ACCEPT_LANGUAGE, AUTHORIZATION, CACHE_CONTROL, CONTENT_LENGTH,
+        CONTENT_TYPE, ORIGIN, REFERER, USER_AGENT,
+    },
     Body,
 };
+use serde::{Deserialize, Serialize};
 use std::{
     convert::AsRef,
     sync::{
@@ -114,13 +118,13 @@ use twilight_validate::{
     channel::ChannelValidationError, request::ValidationError, sticker::StickerValidationError,
 };
 
-const TWILIGHT_USER_AGENT: &str = concat!(
-    "DiscordBot (",
-    env!("CARGO_PKG_HOMEPAGE"),
-    ", ",
-    env!("CARGO_PKG_VERSION"),
-    ") Twilight-rs",
-);
+// const TWILIGHT_USER_AGENT: &str = concat!(
+//     "DiscordBot (",
+//     env!("CARGO_PKG_HOMEPAGE"),
+//     ", ",
+//     env!("CARGO_PKG_VERSION"),
+//     ") Twilight-rs",
+// );
 
 /// Twilight's http client.
 ///
@@ -208,12 +212,38 @@ pub struct Client {
     token_invalidated: Option<Arc<AtomicBool>>,
     token: Option<Box<str>>,
     use_http: bool,
+    // This will always be set.
+    super_props: Option<SuperProps>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+struct SuperProps {
+    pub encoded: String,
+    pub properties: InnerProps,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+struct InnerProps {
+    browser: String,
+    pub browser_user_agent: String,
+    browser_version: String,
+    client_build_number: i32,
+    client_event_source: Option<()>,
+    device: String,
+    os: String,
+    os_version: String,
+    referrer: String,
+    referrer_current: String,
+    referring_domain: String,
+    referring_domain_current: String,
+    release_channel: String,
+    system_locale: String,
 }
 
 impl Client {
     /// Create a new client with a token.
-    pub fn new(token: String) -> Self {
-        ClientBuilder::default().token(token).build()
+    pub async fn new(token: String) -> Self {
+        ClientBuilder::default().token(token).build().await
     }
 
     /// Create a new builder to create a client.
@@ -2517,12 +2547,18 @@ impl Client {
         let protocol = if self.use_http { "http" } else { "https" };
         let host = self.proxy.as_deref().unwrap_or("discord.com");
 
-        let url = format!("{protocol}://{host}/api/v{API_VERSION}/{path}");
+        let is_external = path.starts_with("http");
+
+        let url = if is_external {
+            path.clone()
+        } else {
+            format!("{protocol}://{host}/api/v{API_VERSION}/{path}")
+        };
         tracing::debug!(?url);
 
         let mut builder = hyper::Request::builder().method(method.to_http()).uri(&url);
 
-        if use_authorization_token {
+        if !is_external && use_authorization_token {
             if let Some(token) = &self.token {
                 let value = HeaderValue::from_str(token).map_err(|source| {
                     let name = AUTHORIZATION.to_string();
@@ -2558,7 +2594,46 @@ impl Client {
                 HeaderValue::from_static("br"),
             );
 
-            headers.insert(USER_AGENT, HeaderValue::from_static(TWILIGHT_USER_AGENT));
+            if let Some(super_props) = &self.super_props {
+                let inner = &super_props.properties;
+
+                headers.insert(
+                    USER_AGENT,
+                    HeaderValue::from_str(&inner.browser_user_agent).unwrap(),
+                );
+                headers.insert(
+                    "X-Super-Properties",
+                    HeaderValue::from_str(&super_props.encoded).unwrap(),
+                );
+            }
+
+            headers.insert(ACCEPT_LANGUAGE, HeaderValue::from_str("en-US").unwrap());
+            headers.insert("X-Discord-Locale", HeaderValue::from_str("en-US").unwrap());
+
+            headers.insert(CACHE_CONTROL, HeaderValue::from_str("no-cache").unwrap());
+            headers.insert(
+                ORIGIN,
+                HeaderValue::from_str("https://discord.com").unwrap(),
+            );
+            headers.insert(
+                REFERER,
+                HeaderValue::from_str("https://discord.com/channels/@me").unwrap(),
+            );
+            headers.insert("Sec-CH-UA-Mobile", HeaderValue::from_str("?0").unwrap());
+            headers.insert(
+                "Sec-CH-UA-Platform",
+                HeaderValue::from_str("Windows").unwrap(),
+            );
+            headers.insert("Sec-Fetch-Dest", HeaderValue::from_str("empty").unwrap());
+            headers.insert("Sec-Fetch-Mode", HeaderValue::from_str("cors").unwrap());
+            headers.insert(
+                "Sec-Fetch-Site",
+                HeaderValue::from_str("same-origin").unwrap(),
+            );
+            headers.insert(
+                "X-Debug-Options",
+                HeaderValue::from_str("bugReporterEnabled").unwrap(),
+            );
 
             if let Some(req_headers) = req_headers {
                 for (maybe_name, value) in req_headers {
