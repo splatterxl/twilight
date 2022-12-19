@@ -1,7 +1,10 @@
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 pub use twilight_http_ratelimiting::request::{Path, PathParseError, PathParseErrorType};
 
-use crate::request::{channel::reaction::RequestReactionType, Method};
+use crate::{
+    context_props::ContextProps,
+    request::{channel::reaction::RequestReactionType, Method},
+};
 use std::fmt::{Display, Formatter, Result as FmtResult};
 use twilight_model::id::{marker::RoleMarker, Id};
 
@@ -1572,6 +1575,12 @@ impl<'a> Route<'a> {
             }
             Self::UpdateNickname { guild_id } => Path::GuildsIdMembersMeNick(guild_id),
             Self::UpdateGuildMfa { guild_id } => Path::GuildsIdMfa(guild_id),
+        }
+    }
+
+    pub(crate) fn context_props(&self) -> ContextProps {
+        match &self {
+            _ => ContextProps::None,
         }
     }
 }

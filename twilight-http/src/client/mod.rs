@@ -2542,6 +2542,7 @@ impl Client {
             path,
             ratelimit_path,
             use_authorization_token,
+            use_context_props: context_props,
         } = request;
 
         let protocol = if self.use_http { "http" } else { "https" };
@@ -2647,6 +2648,15 @@ impl Client {
                 for (name, value) in default_headers {
                     headers.insert(name, value.clone());
                 }
+            }
+
+            if context_props.is_some() {
+                let context_props = context_props.get_string();
+
+                headers.insert(
+                    "X-Context-Properties",
+                    HeaderValue::from_str(&context_props).unwrap(),
+                );
             }
         }
 

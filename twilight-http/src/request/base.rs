@@ -1,5 +1,6 @@
 use super::{Form, Method};
 use crate::{
+    context_props::ContextProps,
     error::Error,
     routing::{Path, Route},
 };
@@ -43,6 +44,10 @@ impl RequestBuilder {
     /// `https://discord.com/api/vX/channels/123/pins` the "path and query"
     /// is considered to be `channels/123/pins`.
     ///
+    /// # !! Warning !!
+    ///
+    /// Please do not use this method for endpoints that require the usage of `X-Context-Properties`.
+    ///
     /// # Examples
     ///
     /// Create a request from a method and the URL path and query
@@ -72,6 +77,7 @@ impl RequestBuilder {
             path: path_and_query,
             ratelimit_path,
             use_authorization_token: true,
+            use_context_props: ContextProps::Empty,
         })
     }
 
@@ -138,6 +144,7 @@ pub struct Request {
     pub(crate) path: String,
     pub(crate) ratelimit_path: Path,
     pub(crate) use_authorization_token: bool,
+    pub(crate) use_context_props: ContextProps,
 }
 
 impl Request {
@@ -193,6 +200,7 @@ impl Request {
             path: route.to_string(),
             ratelimit_path: route.to_path(),
             use_authorization_token: true,
+            use_context_props: route.context_props(),
         }
     }
 

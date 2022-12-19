@@ -19,6 +19,7 @@
 
 pub mod api_error;
 pub mod client;
+pub(crate) mod context_props;
 pub mod error;
 pub mod request;
 pub mod response;
