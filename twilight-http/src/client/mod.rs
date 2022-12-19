@@ -2542,7 +2542,7 @@ impl Client {
             path,
             ratelimit_path,
             use_authorization_token,
-            use_context_props: context_props,
+            context_props,
         } = request;
 
         let protocol = if self.use_http { "http" } else { "https" };

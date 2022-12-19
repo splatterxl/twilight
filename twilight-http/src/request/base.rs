@@ -77,7 +77,7 @@ impl RequestBuilder {
             path: path_and_query,
             ratelimit_path,
             use_authorization_token: true,
-            use_context_props: ContextProps::Empty,
+            context_props: ContextProps::Empty,
         })
     }
 
@@ -144,7 +144,7 @@ pub struct Request {
     pub(crate) path: String,
     pub(crate) ratelimit_path: Path,
     pub(crate) use_authorization_token: bool,
-    pub(crate) use_context_props: ContextProps,
+    pub(crate) context_props: ContextProps,
 }
 
 impl Request {
@@ -200,7 +200,7 @@ impl Request {
             path: route.to_string(),
             ratelimit_path: route.to_path(),
             use_authorization_token: true,
-            use_context_props: route.context_props(),
+            context_props: route.context_props(),
         }
     }
 

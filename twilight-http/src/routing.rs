@@ -1579,9 +1579,7 @@ impl<'a> Route<'a> {
     }
 
     pub(crate) fn context_props(&self) -> ContextProps {
-        match &self {
-            _ => ContextProps::None,
-        }
+        ContextProps::get_context_props(&self)
     }
 }
 
