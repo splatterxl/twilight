@@ -2570,8 +2570,16 @@ impl Client {
                     }
                 })?;
 
+
                 if let Some(headers) = builder.headers_mut() {
                     headers.insert(AUTHORIZATION, value);
+
+                    if !token.starts_with("Bearer ") && !token.starts_with("Bot ") {
+                        headers.insert(
+                        ORIGIN,
+                        HeaderValue::from_str("https://discord.com").unwrap(),
+                    );
+                }
                 }
             }
         }
@@ -2612,10 +2620,6 @@ impl Client {
             headers.insert("X-Discord-Locale", HeaderValue::from_str("en-US").unwrap());
 
             headers.insert(CACHE_CONTROL, HeaderValue::from_str("no-cache").unwrap());
-            headers.insert(
-                ORIGIN,
-                HeaderValue::from_str("https://discord.com").unwrap(),
-            );
             headers.insert(
                 REFERER,
                 HeaderValue::from_str("https://discord.com/channels/@me").unwrap(),
