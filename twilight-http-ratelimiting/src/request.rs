@@ -162,6 +162,8 @@ pub enum Path {
     ChannelsIdTyping(u64),
     /// Operating on a channel's webhooks.
     ChannelsIdWebhooks(u64),
+    /// Operating with rollout information
+    Experiments,
     /// Operating with the gateway information.
     Gateway,
     /// Operating with the gateway information tailored to the current user.
@@ -375,7 +377,8 @@ impl FromStr for Path {
             ["channels", id, "typing"] => ChannelsIdTyping(parse_id(id)?),
             ["channels", id, "webhooks"] | ["channels", id, "webhooks", _] => {
                 ChannelsIdWebhooks(parse_id(id)?)
-            }
+            },
+            ["experiments"] => Experiments,
             ["gateway"] => Gateway,
             ["gateway", "bot"] => GatewayBot,
             ["guilds"] => Guilds,
