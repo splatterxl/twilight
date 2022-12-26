@@ -2570,16 +2570,15 @@ impl Client {
                     }
                 })?;
 
-
                 if let Some(headers) = builder.headers_mut() {
                     headers.insert(AUTHORIZATION, value);
 
                     if !token.starts_with("Bearer ") && !token.starts_with("Bot ") {
                         headers.insert(
-                        ORIGIN,
-                        HeaderValue::from_str("https://discord.com").unwrap(),
-                    );
-                }
+                            ORIGIN,
+                            HeaderValue::from_str("https://discord.com").unwrap(),
+                        );
+                    }
                 }
             }
         }

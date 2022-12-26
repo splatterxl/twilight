@@ -80,11 +80,17 @@ impl ClientBuilder {
             super_props: None,
         };
 
-        let client = ClientBuilder::get_super_props(client)
-            .await
-            .expect("Couldn't get super properties");
-
-        client
+        if let &Some(token) = &client.token() {
+            if !token.starts_with("Bot") && !token.starts_with("Bearer") {
+                ClientBuilder::get_super_props(client)
+                    .await
+                    .expect("Couldn't get super properties")
+            } else {
+                client
+            }
+        } else {
+            client
+        }
     }
 
     /// Set the default allowed mentions setting to use on all messages sent through the HTTP
